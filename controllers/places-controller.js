@@ -80,19 +80,27 @@ async function createPlace(req, res, next) {
   res.status(201).json({ place: createdPlace });
 }
 
-function updatePlace(req, res, next) {
+async function updatePlace(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new HttpError("Invalid inputs.", 422));
   }
   const { title, description } = req.body;
   const placeId = req.params.pid;
-  const updatedPlace = { ...DUMMY_PLACES.find((p) => p.id === placeid) };
-  const placeIndex = DUMMY_PLACES.findIndex((p) => p.id === placeId);
-  updatedPlace.title = title;
-  updatedPlace.description = description;
-  DUMMY_PLACES[placeIndex] = updatedPlace;
-  res.json({ place: updatedPlace });
+  let place;
+  try {
+    place = await Place.findById(placeId);
+  } catch (error) {
+    return next(error);
+  }
+  place.title = title;
+  place.description = description;
+  try {
+    await place.save();
+  } catch (error) {
+    return next(error);
+  }
+  res.json({ place: place.toObject({ getters: true }) });
 }
 
 function deletePlace(req, res, next) {
