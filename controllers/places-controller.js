@@ -3,6 +3,8 @@ const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const getCoordsForAdress = require("../util/location");
 const Place = require("../models/place");
+const User = require("../models/user");
+const { default: mongoose } = require("mongoose");
 
 async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
@@ -45,9 +47,7 @@ async function createPlace(req, res, next) {
   let location;
   try {
     location = await getCoordsForAdress(address);
-  } catch (error) {
-    return next(error);
-  }
+  } catch (error) {}
   const createdPlace = new Place({
     title,
     description,
@@ -57,8 +57,25 @@ async function createPlace(req, res, next) {
     creator,
   });
 
+  let user;
+
   try {
-    await createdPlace.save();
+    user = await User.findById(creator);
+  } catch (error) {
+    return next(error);
+  }
+
+  if (!user) {
+    return next(error);
+  }
+
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    await createdPlace.save({ session: session });
+    user.places.push(createdPlace);
+    await user.save({ session: session });
+    await session.commitTransaction();
   } catch (error) {
     return next(error);
   }
