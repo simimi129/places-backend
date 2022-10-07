@@ -4,20 +4,6 @@ const HttpError = require("../models/http-error");
 const getCoordsForAdress = require("../util/location");
 const Place = require("../models/place");
 
-let DUMMY_PLACES = [
-  {
-    id: "p1",
-    title: "title1",
-    description: "description1",
-    location: {
-      lat: 10,
-      lng: 10,
-    },
-    address: "address1",
-    creator: "u1",
-  },
-];
-
 async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
   let place;
