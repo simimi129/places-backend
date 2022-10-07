@@ -17,7 +17,7 @@ function getUsers(req, res, next) {
 
 function signup(req, res, next) {
   const errors = validationResult(req);
-  if (errors.isEmpty()) {
+  if (!errors.isEmpty()) {
     return next(new HttpError("Invalid inputs.", 422));
   }
   const { name, email, password } = req.body;
