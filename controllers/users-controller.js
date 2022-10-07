@@ -3,7 +3,7 @@ const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const User = require("../models/user");
 
-function getUsers(req, res, next) {
+async function getUsers(req, res, next) {
   res.json({ users: DUMMY_USERS });
 }
 
@@ -38,13 +38,17 @@ async function signup(req, res, next) {
   res.status(201).json({ user: createdUser.toObject({ getters: true }) });
 }
 
-function login(req, res, next) {
+async function login(req, res, next) {
   const { email, password } = req.body;
-  const identifiedUser = DUMMY_USERS.find((u) => u.email === email);
-  if (!identifiedUser || identifiedUser.password !== password) {
-    return next(new HttpError("Could not identify user", 401));
+  let user;
+  try {
+    user = await User.findOne({ email: email });
+  } catch (error) {
+    return next(error);
   }
-
+  if (!user || user.password !== password) {
+    return next(new HttpError("Invalid credentials", 422));
+  }
   res.json({ message: "Logged in." });
 }
 
