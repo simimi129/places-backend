@@ -33,6 +33,7 @@ async function signup(req, res, next) {
     email,
     password,
     image: "asd",
+    places: [],
   });
 
   try {
