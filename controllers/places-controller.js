@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const getCoordsForAdress = require("../util/location");
+const Place = require("../models/place");
 
 let DUMMY_PLACES = [
   {
@@ -17,30 +18,36 @@ let DUMMY_PLACES = [
   },
 ];
 
-function getPlaceById(req, res, next) {
+async function getPlaceById(req, res, next) {
   const placeId = req.params.pid;
-  const place = DUMMY_PLACES.find((p) => {
-    return p.id === placeId;
-  });
+  let place;
+  try {
+    place = await Place.findById(placeId);
+  } catch (error) {
+    return next(error);
+  }
   if (!place) {
     return next(
       new HttpError("Could not find a place for the provided place id", 404)
     );
   }
-  res.json({ place });
+  res.json({ place: place.toObject({ getters: true }) });
 }
 
-function getPlacesByUserId(req, res, next) {
+async function getPlacesByUserId(req, res, next) {
   const userId = req.params.uid;
-  const places = DUMMY_PLACES.filter((p) => {
-    return p.creator === userId;
-  });
-  if (!places || place.length === 0) {
+  let places;
+  try {
+    places = await Place.find({ creator: userId });
+  } catch (error) {
+    return next(error);
+  }
+  if (!places || places.length === 0) {
     return next(
       new HttpError("Could not find places for the provided user id", 404)
     );
   }
-  res.json({ places });
+  res.json({ places: places.map((p) => p.toObject({ getters: true })) });
 }
 
 async function createPlace(req, res, next) {
@@ -48,23 +55,27 @@ async function createPlace(req, res, next) {
   if (!errors.isEmpty()) {
     return next(new HttpError("Invalid inputs.", 422));
   }
-  const { title, description, address, creator } = req.body;
+  const { title, description, image, address, creator } = req.body;
   let location;
   try {
     location = await getCoordsForAdress(address);
   } catch (error) {
     return next(error);
   }
-  const createdPlace = {
-    id: uuidv4(),
+  const createdPlace = new Place({
     title,
     description,
-    location,
     address,
+    location,
+    image,
     creator,
-  };
+  });
 
-  DUMMY_PLACES.push(createdPlace);
+  try {
+    await createdPlace.save();
+  } catch (error) {
+    return next(error);
+  }
 
   res.status(201).json({ place: createdPlace });
 }
