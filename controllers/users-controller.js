@@ -4,7 +4,13 @@ const HttpError = require("../models/http-error");
 const User = require("../models/user");
 
 async function getUsers(req, res, next) {
-  res.json({ users: DUMMY_USERS });
+  let users;
+  try {
+    users = await User.find({}, "-password");
+  } catch (error) {
+    return next(error);
+  }
+  res.json({ users: users.map((u) => u.toObject({ getters: true })) });
 }
 
 async function signup(req, res, next) {
